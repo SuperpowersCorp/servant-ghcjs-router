@@ -12,6 +12,8 @@ import           Servant.GHCJS.Redirect
 import           Servant.GHCJS.Router
 
 
+import Control.Concurrent
+
 printMaybePage :: Either [JSString] Page -> IO ()
 printMaybePage (Right (Page v)) = js_log v
 printMaybePage (Left err) = js_log $ "Error: " `append` (intercalate ", " err)
@@ -22,6 +24,11 @@ main = do
   let redirectBooks :<|> redirectAuthor :<|> redirectISBN = redirectClient (Proxy :: Proxy MyApi)
 
   redirectBooks "aTitle"
+
+
+  threadDelay $ 10 ^ 6
+
+  redirectISBN "123" "pageNumber" (Just "aJustPage")
   return ()
 
 

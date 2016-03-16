@@ -28,23 +28,25 @@ import           Unsafe.Coerce
 
 import           GHCJS.Hasher
 
+import           Control.Concurrent
+import           Control.Monad
+
+
 initRouter :: (HasRouter route) => Proxy route -> Router route -> IO ()
-initRouter p r = do
+initRouter proxy router = do
   let runHasher new = do
-        export new
-        putStrLn "Hello"
-        -- case runHashRouter (route p r) (unsafeCoerce new) of
-        --   Left errs -> putStrLn . unpack . JS.concat $ errs
-        --   Right (Page suc) -> putStrLn . unpack $ JS.concat ["Success: ", suc]
-  onChange <- syncCallback2 ThrowWouldBlock (\x _ -> runHasher x)
-  onChange' <- asyncCallback1 runHasher
+        case runHashRouter (route proxy router) (parseHashRoute (unsafeCoerce new)) of
+          Left errs -> putStrLn . unpack . JS.concat $ errs
+          Right (Page suc) -> putStrLn . unpack $ JS.concat ["Success: ", suc]
+  onChange <- syncCallback2 ContinueAsync (\x _-> runHasher x)
+  onChange' <- syncCallback1 ContinueAsync runHasher
   hasherAddOnChange onChange
   hasherOnInitialized onChange'
   hasherInit
   return ()
 
 
-foreign import javascript unsafe "console.log($1)" export :: JSVal -> IO ()
+foreign import javascript unsafe "window[$1] = $2" export :: JSString -> Callback a -> IO ()
 
 data Router' =
     WithParams ([(JSString, JSString)] -> Router')
