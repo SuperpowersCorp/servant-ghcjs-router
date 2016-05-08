@@ -1,6 +1,12 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
-module Servant.GHCJS.Internal where
+module Servant.GHCJS.Internal (
+  renderRoute
+, HashRoute(..)
+, emptyHashRoute
+, parseHashRoute
+, Page(..)
+)where
 
 
 import           Data.JSString
@@ -15,7 +21,7 @@ import           Unsafe.Coerce
 import           Prelude                hiding (concat, null, drop)
 
 
-data Page = Page JSString
+data Page = Page (IO ())
 
 
 

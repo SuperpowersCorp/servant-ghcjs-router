@@ -1,5 +1,5 @@
 name:                servant-ghcjs-router
-version:             0.1.0.0
+version:             0.1.1.0
 synopsis:            A Haskell based router for single page GHCJS applications
 description:         Please see README.md
 homepage:            https://github.com/plow-technologies/servant-ghcjs-router#readme
@@ -15,12 +15,12 @@ library
   hs-source-dirs:      src
   ghc-options:         -Wall
   exposed-modules:     Servant.GHCJS.Redirect
+                     , Servant.GHCJS.Render
                      , Servant.GHCJS.Router
                      , Servant.GHCJS.Internal
   build-depends:       base >= 4.7 && < 5
                      , ghcjs-base
                      , servant
-                     , transformers
                      , ghcjs-hasher
   default-language:    Haskell2010
 

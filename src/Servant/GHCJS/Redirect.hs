@@ -7,29 +7,31 @@
 {-# LANGUAGE TypeOperators       #-}
 module Servant.GHCJS.Redirect where
 
-import           Control.Monad.Trans.Maybe (MaybeT, runMaybeT)
 import           Data.Proxy                (Proxy (..))
 import           GHC.TypeLits              (KnownSymbol, symbolVal)
 import           Servant.API               ((:<|>) (..), (:>), Capture,
                                             QueryParam)
 
-import           Data.JSString             (cons, pack, snoc, unpack)
-import           GHCJS.Foreign.Callback
-import           GHCJS.Marshal             (FromJSVal (..))
-import           GHCJS.Types               (JSVal)
+import           Data.JSString             (JSString, pack)
 
-import           Data.JSString
 import           Servant.GHCJS.Internal
 
 import           GHCJS.Hasher
-
-import           Data.Monoid
-import           Unsafe.Coerce
 
 -- | Build combinators for each route to redirect the client
 -- using Hasher's setHash
 redirectClient :: (HasRedirect route) => Proxy route -> Redirect route
 redirectClient p = redirect p emptyHashRoute
+
+
+class ToRouteParam val where
+  toRouteParam :: val -> JSString
+
+instance ToRouteParam JSString where
+  toRouteParam x = x
+
+instance ToRouteParam Int where
+  toRouteParam x = pack $ show x
 
 -- | Class to handle redirecting and changing the current
 -- client side url
@@ -54,19 +56,19 @@ instance (HasRedirect a, HasRedirect b) => HasRedirect (a :<|> b) where
 
 -- | A capture requires a JSString to fill in the
 -- required parameter
-instance (KnownSymbol capture, HasRedirect subroute)
-                => HasRedirect (Capture capture JSString :> subroute) where
-  type Redirect (Capture capture JSString :> subroute) = JSString -> Redirect subroute
+instance (KnownSymbol capture, HasRedirect subroute, ToRouteParam val)
+                => HasRedirect (Capture capture val :> subroute) where
+  type Redirect (Capture capture val :> subroute) = val -> Redirect subroute
 
-  redirect _ (HashRoute paths ps) param = redirect subProxy (HashRoute (paths ++ [param]) ps)
+  redirect _ (HashRoute paths ps) param = redirect subProxy (HashRoute (paths ++ [toRouteParam param]) ps)
     where subProxy = Proxy :: Proxy subroute
 
 -- | A query param optionally sets a parameter
-instance (KnownSymbol query, HasRedirect subroute)
-                => HasRedirect (QueryParam query JSString :> subroute) where
-  type Redirect (QueryParam query JSString :> subroute) = Maybe JSString -> Redirect subroute
+instance (KnownSymbol query, HasRedirect subroute, ToRouteParam val)
+                => HasRedirect (QueryParam query val :> subroute) where
+  type Redirect (QueryParam query val :> subroute) = Maybe JSString -> Redirect subroute
 
-  redirect _ (HashRoute paths ps) (Just val) = redirect subProxy (HashRoute paths (ps ++ [(queryKey, val)]))
+  redirect _ (HashRoute paths ps) (Just val) = redirect subProxy (HashRoute paths (ps ++ [(queryKey, toRouteParam val)]))
     where queryKey = pack $ symbolVal (Proxy :: Proxy query)
           subProxy = Proxy :: Proxy subroute
   redirect _ hroute Nothing = redirect subProxy hroute

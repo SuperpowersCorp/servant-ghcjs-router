@@ -3,7 +3,7 @@
 {-# LANGUAGE TypeOperators     #-}
 module Main where
 
-import           Data.JSString
+import           Data.JSString as JS
 import           Data.Proxy
 import           GHCJS.Types
 import           Servant.API
@@ -15,7 +15,7 @@ import           Servant.GHCJS.Router
 import Control.Concurrent
 
 printMaybePage :: Either [JSString] Page -> IO ()
-printMaybePage (Right (Page v)) = js_log v
+printMaybePage (Right (Page v)) = v
 printMaybePage (Left err) = js_log $ "Error: " `append` (intercalate ", " err)
 
 main :: IO ()
@@ -54,10 +54,10 @@ hashFive = HashRoute ["api","isbn","someISBN"] []
 -- | Stand in router
 anAPI :: Router MyApi
 anAPI = books :<|> author :<|> isbn
-  where books title = Page $ "Books: " `append` title
-        author a = Page $ "Author: " `append` a
-        isbn i page (Just page') = Page $ i `append` page `append` page'
-        isbn i page _ = Page "Need a page"
+  where books title = Page $ js_log $ "Books: " `append` title
+        author a = Page $ js_log $ "Author: " `append` a
+        isbn i page (Just page') = Page $ js_log $ JS.concat ["ISBN: ", i, " Page: ", page, " Page': ", page']
+        isbn i page _ = Page $ js_log $ "Need a page"
 
 
 foreign import javascript unsafe "console.log($1)" js_log :: JSString -> IO ()

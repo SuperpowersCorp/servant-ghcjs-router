@@ -7,29 +7,22 @@
 {-# LANGUAGE TypeOperators       #-}
 module Servant.GHCJS.Router where
 
-import           Control.Monad.Trans.Maybe (MaybeT, runMaybeT)
 import           Data.Proxy                (Proxy (..))
 import           GHC.TypeLits              (KnownSymbol, symbolVal)
 import           Servant.API               ((:<|>) (..), (:>), Capture,
                                             QueryParam)
 
-import           Data.JSString             as JS (concat, cons, pack, snoc,
-                                                  unpack)
+import           Data.JSString             as JS (concat, pack)
 import           GHCJS.Foreign.Callback
-import           GHCJS.Marshal             (FromJSVal (..))
-import           GHCJS.Types               (JSVal)
 
 import           Data.JSString
+import           Data.JSString.Read        (readIntMaybe)
 import           Servant.GHCJS.Internal
 
-
-import           Data.Monoid
 import           Unsafe.Coerce
 
 import           GHCJS.Hasher
 
-import           Control.Concurrent
-import           Control.Monad
 
 
 initRouter :: (HasRouter route) => Proxy route -> Router route -> IO ()
@@ -37,7 +30,7 @@ initRouter proxy router = do
   let runHasher new = do
         case runHashRouter (route proxy router) (parseHashRoute (unsafeCoerce new)) of
           Left errs -> putStrLn . unpack . JS.concat $ errs
-          Right (Page suc) -> putStrLn . unpack $ JS.concat ["Success: ", suc]
+          Right (Page suc) -> suc
   onChange <- syncCallback2 ContinueAsync (\x _-> runHasher x)
   onChange' <- syncCallback1 ContinueAsync runHasher
   hasherAddOnChange onChange
@@ -51,14 +44,14 @@ foreign import javascript unsafe "window[$1] = $2" export :: JSString -> Callbac
 data Router' =
     WithParams ([(JSString, JSString)] -> Router')
   | NextIs JSString (Router')
-  | WithNext (JSString -> Router')
+  | WithNext (JSString -> Either [JSString] Router')
   | Choice Router' Router'
   | LeafRouter Page
 
 
 runHashRouter :: Router' -> HashRoute -> Either [JSString] Page
 runHashRouter (WithParams f) hr = runHashRouter (f $ hashParams hr) hr
-runHashRouter (WithNext f) (HashRoute (p:ps) params) = runHashRouter (f p) $ HashRoute ps params
+runHashRouter (WithNext f) (HashRoute (p:ps) params) = (flip runHashRouter $ HashRoute ps params) =<< (f p)
 runHashRouter (Choice r1 r2) h = tryEither (runHashRouter r1 h) (runHashRouter r2 h)
 runHashRouter (LeafRouter p) (HashRoute [] _) = Right p
 runHashRouter (NextIs path next) (HashRoute (p:ps) params) =
@@ -74,6 +67,15 @@ tryEither _ (Right y) = Right y
 tryEither (Left err1) (Left err2) = Left $ err1 ++ err2
 
 
+
+class FromRouteParam val where
+  fromRouteParam :: JSString -> Maybe val
+
+instance FromRouteParam JSString where
+  fromRouteParam x = Just x
+
+instance FromRouteParam Int where
+  fromRouteParam = readIntMaybe
 
 -- | Handle creating a router for a single page app
 class HasRouter route where
@@ -102,22 +104,25 @@ instance (HasRouter a, HasRouter b) => HasRouter (a :<|> b) where
 -- | Build a router to handle the 'capture' of some param ie
 -- "v1" :> Capture "name" JSString :> Page would match for all {str}
 -- v1/{str} and pass the string in to the rendering function
-instance (KnownSymbol capture, HasRouter subroute)
-                => HasRouter (Capture capture JSString :> subroute) where
-  type RouterT (Capture capture JSString :> subroute) m = JSString -> RouterT subroute m
+instance (KnownSymbol capture, HasRouter subroute, FromRouteParam val)
+                => HasRouter (Capture capture val :> subroute) where
+  type RouterT (Capture capture val :> subroute) m = val -> RouterT subroute m
 
-  route _ router = WithNext (\next -> route subProxy (router next))
+  route _ router = WithNext $ \n -> route subProxy <$> eRouter n
     where subProxy = Proxy :: Proxy subroute
+          eRouter next = maybe (Left [parseError]) (Right . router) $ fromRouteParam next
+          parseError = JS.pack "Parse error improve"
+
 
 -- | Build a router to add query parameters that are optional
 -- these are looked up and aren't require for the function to be ran
-instance (KnownSymbol query, HasRouter subroute)
-                => HasRouter (QueryParam query JSString :> subroute) where
-  type RouterT (QueryParam query JSString :> subroute) m = Maybe JSString -> RouterT subroute m
+instance (KnownSymbol query, HasRouter subroute, FromRouteParam val)
+                => HasRouter (QueryParam query val :> subroute) where
+  type RouterT (QueryParam query val :> subroute) m = Maybe val -> RouterT subroute m
 
   route _ router = WithParams (route subProxy . router')
     where queryKey = pack $ symbolVal (Proxy :: Proxy query)
-          router' params = router (lookup queryKey params)
+          router' params = router (fromRouteParam =<< lookup queryKey params)
           subProxy = Proxy :: Proxy subroute
 
 -- | Build a router to handle paths and match
