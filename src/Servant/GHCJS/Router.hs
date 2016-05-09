@@ -38,12 +38,9 @@ initRouter proxy router = do
   hasherInit
   return ()
 
-
-foreign import javascript unsafe "window[$1] = $2" export :: JSString -> Callback a -> IO ()
-
 data Router' =
     WithParams ([(JSString, JSString)] -> Router')
-  | NextIs JSString (Router')
+  | NextIs JSString Router'
   | WithNext (JSString -> Either [JSString] Router')
   | Choice Router' Router'
   | LeafRouter Page
@@ -61,6 +58,8 @@ runHashRouter (NextIs path next) (HashRoute (p:ps) params) =
 runHashRouter _ _ = Left ["Empty case?"]
 
 
+-- | A left biased either selection returning a concatinated list of errors
+-- if both are left
 tryEither :: Either [a] b -> Either [a] b -> Either [a] b
 tryEither (Right x) _ = Right x
 tryEither _ (Right y) = Right y

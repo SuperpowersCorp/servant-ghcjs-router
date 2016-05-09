@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds         #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeOperators     #-}
+{-# LANGUAGE QuasiQuotes     #-}
 module Main where
 
 import           Data.JSString as JS
@@ -12,6 +13,7 @@ import           Servant.GHCJS.Redirect
 import           Servant.GHCJS.Router
 
 
+import GHCJS.Foreign.QQ
 import Control.Concurrent
 
 printMaybePage :: Either [JSString] Page -> IO ()
@@ -20,6 +22,7 @@ printMaybePage (Left err) = js_log $ "Error: " `append` (intercalate ", " err)
 
 main :: IO ()
 main = do
+  [js| console.log("Hello") |]
   initRouter (Proxy :: Proxy MyApi) anAPI
   let redirectBooks :<|> redirectAuthor :<|> redirectISBN = redirectClient (Proxy :: Proxy MyApi)
 
