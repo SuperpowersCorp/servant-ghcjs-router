@@ -25,12 +25,8 @@ main = do
   [js| console.log("Hello") |]
   initRouter (Proxy :: Proxy MyApi) anAPI
   let redirectBooks :<|> redirectAuthor :<|> redirectISBN = redirectClient (Proxy :: Proxy MyApi)
-
   redirectBooks "aTitle"
-
-
   threadDelay $ 10 ^ 6
-
   redirectISBN "123" "pageNumber" (Just "aJustPage")
   return ()
 
@@ -40,19 +36,6 @@ type MyApi = "api" :> ("books" :> Capture "title" JSString :> Page
                       :<|> "author" :> Capture "author" JSString :> Page
                       :<|> "isbn" :> Capture "isbn" JSString :> Capture "page" JSString :> QueryParam "page" JSString :> Page
                       )
-
-
-
-hashOne = HashRoute ["api","books","aTitle"] []
-
-hashTwo = HashRoute ["api","author","anAuthor"] []
-
-hashThree = HashRoute ["api","isbn","someISBN", "somePage"] [("page", "anotherPage")]
-
-hashFour = HashRoute ["api","isbn","someISBN", "somePage"] []
-
-hashFive = HashRoute ["api","isbn","someISBN"] []
-
 
 -- | Stand in router
 anAPI :: Router MyApi
