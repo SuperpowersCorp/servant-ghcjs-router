@@ -5,7 +5,11 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies        #-}
 {-# LANGUAGE TypeOperators       #-}
-module Servant.GHCJS.Router where
+module Servant.GHCJS.Router
+       ( Page(Page)
+       , Router
+       , initRouter
+       ) where
 
 import           Data.Proxy                (Proxy (..))
 import           GHC.TypeLits              (KnownSymbol, symbolVal)
