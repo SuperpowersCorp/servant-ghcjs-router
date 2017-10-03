@@ -8,7 +8,10 @@
 module Servant.GHCJS.Router
        ( Page(Page)
        , Router
+       , Route(Route)
+       , FromRouteParam( fromRouteParam )
        , initRouter
+       , gotoRoute
        ) where
 
 import           Data.Proxy                (Proxy (..))
@@ -28,6 +31,8 @@ import           Unsafe.Coerce
 import           GHCJS.Hasher
 
 
+gotoRoute :: Route -> IO ()
+gotoRoute (Route r) = hasherSetHash r
 
 initRouter :: (HasRouter route) => Proxy route -> Router route -> IO ()
 initRouter proxy router = do
@@ -70,8 +75,6 @@ tryEither (Right x) _ = Right x
 tryEither _ (Right y) = Right y
 tryEither (Left err1) (Left err2) = Left $ err1 ++ err2
 
-
-
 class FromRouteParam val where
   fromRouteParam :: JSString -> Maybe val
 
@@ -80,6 +83,8 @@ instance FromRouteParam JSString where
 
 instance FromRouteParam Int where
   fromRouteParam = readIntMaybe
+
+instance FromRouteParam Route
 
 -- | Handle creating a router for a single page app
 class HasRouter route where

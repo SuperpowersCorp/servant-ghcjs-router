@@ -2,4 +2,5 @@ resolver: lts-5.5
 compiler: ghcjs-0.2.0_ghc-7.10.2
 packages:
     - .
-    - ../ghcjs-hasher
+    - location:
+        git: git@github.com:plow-technologies/ghcjs-hasher.git          commit: dc813f26bc0899d6382206d0c2e4c3934d7e869a

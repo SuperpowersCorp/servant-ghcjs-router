@@ -13,7 +13,6 @@ import           Servant.API               ((:<|>) (..), (:>), Capture,
                                             QueryParam)
 
 import           Data.JSString
-import GHCJS.Hasher (hasherSetHash)
 import           Servant.GHCJS.Internal
 import           Servant.GHCJS.Redirect
 
@@ -31,9 +30,9 @@ class HasRender route where
 
 -- | Render to a page just renders the current HashRoute
 instance HasRender Page where
-  type Render Page = IO ()
+  type Render Page = Route
 
-  render _ hroute = hasherSetHash $ renderRoute hroute
+  render _ hroute = Route $ renderRoute hroute
 
 -- | Disjoint routes create two Renders
 instance (HasRender a, HasRender b) => HasRender (a :<|> b) where

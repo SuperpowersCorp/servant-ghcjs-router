@@ -33,6 +33,9 @@ instance ToRouteParam JSString where
 instance ToRouteParam Int where
   toRouteParam x = pack $ show x
 
+instance ToRouteParam Route where
+  toRouteParam (Route s) = s
+
 -- | Class to handle redirecting and changing the current
 -- client side url
 class HasRedirect route where

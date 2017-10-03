@@ -1,11 +1,14 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE DeriveGeneric   #-}
 module Servant.GHCJS.Internal (
   renderRoute
 , HashRoute(..)
 , emptyHashRoute
 , parseHashRoute
 , Page(..)
+, Route(Route) 
 )where
 
 
@@ -17,13 +20,15 @@ import           GHCJS.Types
 import           Control.Applicative
 import           Data.Monoid
 import           Unsafe.Coerce
+import GHC.Generics (Generic)
 
 import           Prelude                hiding (concat, null, drop)
 
 
 data Page = Page (IO ())
 
-
+newtype Route = Route JSString
+              deriving (Show, Eq, Generic, Ord, Monoid)
 
 renderRoute :: HashRoute -> JSString
 renderRoute (HashRoute paths []) = intercalate "/" paths
