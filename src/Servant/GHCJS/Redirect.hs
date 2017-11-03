@@ -69,7 +69,7 @@ instance (KnownSymbol capture, HasRedirect subroute, ToRouteParam val)
 -- | A query param optionally sets a parameter
 instance (KnownSymbol query, HasRedirect subroute, ToRouteParam val)
                 => HasRedirect (QueryParam query val :> subroute) where
-  type Redirect (QueryParam query val :> subroute) = Maybe JSString -> Redirect subroute
+  type Redirect (QueryParam query val :> subroute) = Maybe val -> Redirect subroute
 
   redirect _ (HashRoute paths ps) (Just val) = redirect subProxy (HashRoute paths (ps ++ [(queryKey, toRouteParam val)]))
     where queryKey = pack $ symbolVal (Proxy :: Proxy query)

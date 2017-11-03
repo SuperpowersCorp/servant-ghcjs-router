@@ -54,7 +54,7 @@ instance (KnownSymbol capture, HasRender subroute, ToRouteParam val)
 -- | A query param optionally sets a parameter
 instance (KnownSymbol query, HasRender subroute, ToRouteParam val)
                 => HasRender (QueryParam query val :> subroute) where
-  type Render (QueryParam query val :> subroute) = Maybe JSString -> Render subroute
+  type Render (QueryParam query val :> subroute) = Maybe val -> Render subroute
 
   render _ (HashRoute paths ps) (Just val) = render subProxy (HashRoute paths (ps ++ [(queryKey, toRouteParam val)]))
     where queryKey = pack $ symbolVal (Proxy :: Proxy query)
